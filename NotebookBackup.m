@@ -55,29 +55,20 @@ SubPathQ[basepath_String, testpath_String] :=
 	(StringLength[testpath] >= StringLength[basepath] && StringTake[testpath, StringLength[basepath]] === basepath);
 
 BackupCurrentNotebook[input_] :=
-	Module[{nbfile, bakfile, bakfile2},
+	Module[{nbfile},
 		nbfile = Quiet[NotebookFileName[]];
 
 		If[(!nbfile === $Failed) && (*nb must have been saved*)
 			(Or @@ (SubPathQ[#, nbfile]&) /@ AcceptablePaths) && (*must be saved within acceptable path (avoid help files!)*)
 			(MemberQ[AcceptableExtensions, FileExtension[nbfile]]) && (*must have acceptable extension*)
-			((bakfile = BackupName[nbfile, 1]; !FileExistsQ[bakfile]) || (*backup must either not exist...*)
-				AbsoluteTime[FileDate[bakfile]] + BackupInterval < AbsoluteTime[]) (*...or not have been updated within BackupInterval*)
+	
+				(AbsoluteTime[FileDate[nbfile]] + BackupInterval < AbsoluteTime[]) (* and not have been updated within BackupInterval*)
 		,
-			If[FileExistsQ[bakfile],
-				bakfile2 = BackupName[nbfile, 2];
-				Monitor[
-					If[FileExistsQ[bakfile2], DeleteFile[bakfile2]];
-					CopyFile[bakfile, bakfile2];
-				,
-					"Making second backup, " <> FileNameTake[bakfile2] <> "..."
-				];
-			];
-			Monitor[Export[bakfile, EvaluationNotebook[], "NB"],
-				"Backing up " <> FileNameTake[nbfile] <> " to " <> FileNameTake[bakfile] <> "..."];
+			NotebookSave[];
+
 			If[SetStatus, SetOptions[EvaluationNotebook[], WindowStatusArea -> FileNameTake[nbfile] <>
-				" last backed up to " <> FileNameTake[bakfile] <> " on " <>
-				DateString[{"DateShort", " at ", "Hour12Short", ":", "Minute", ":", "Second", " ", "AMPM"}]]];
+				" autosaved at  "  <>
+				DateString[{"DateShort", " at ", "Hour24", ":", "Minute", ":", "Second"}]]];
 		,
 			If[RemoveStatus, SetOptions[EvaluationNotebook[], WindowStatusArea -> Automatic]]
 		];
